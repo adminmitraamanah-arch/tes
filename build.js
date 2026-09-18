@@ -60,8 +60,43 @@ function build() {
   }
 
   const indexTemplatePath = path.join(VIEWS_DIR, 'index.html');
+  
+  // Jika Views/index.html tidak ditemukan (misal di Vercel/CI karena hanya folder frontend yang di-push ke git)
   if (!fs.existsSync(indexTemplatePath)) {
-    throw new Error(`index.html tidak ditemukan di ${indexTemplatePath}`);
+    const rootIndexPath = path.join(__dirname, 'index.html');
+    const distIndexPath = path.join(DIST_DIR, 'index.html');
+
+    if (fs.existsSync(distIndexPath) || fs.existsSync(rootIndexPath)) {
+      console.log('Info: Folder Views/ tidak ditemukan di parent directory (mode deployment Vercel/Hosting).');
+      console.log('Menggunakan file index.html mandiri yang sudah dibundel sebelumnya.');
+
+      if (!fs.existsSync(distIndexPath) && fs.existsSync(rootIndexPath)) {
+        fs.copyFileSync(rootIndexPath, distIndexPath);
+      } else if (fs.existsSync(distIndexPath) && !fs.existsSync(rootIndexPath)) {
+        fs.copyFileSync(distIndexPath, rootIndexPath);
+      }
+
+      const srcConfig = path.join(__dirname, 'config.js');
+      const distConfig = path.join(DIST_DIR, 'config.js');
+      if (fs.existsSync(srcConfig)) {
+        fs.copyFileSync(srcConfig, distConfig);
+        console.log(`Disalin: ${distConfig}`);
+      }
+
+      const srcAdapter = fs.existsSync(path.join(__dirname, 'src', 'api', 'gasAdapter.js'))
+        ? path.join(__dirname, 'src', 'api', 'gasAdapter.js')
+        : path.join(__dirname, 'gasAdapter.js');
+      const distAdapter = path.join(DIST_DIR, 'gasAdapter.js');
+      if (fs.existsSync(srcAdapter)) {
+        fs.copyFileSync(srcAdapter, distAdapter);
+        console.log(`Disalin: ${distAdapter}`);
+      }
+
+      console.log('=== BUILD SELESAI DENGAN SUKSES (MODE PRE-BUILT VERCEL) ===');
+      return;
+    }
+
+    throw new Error(`index.html tidak ditemukan di ${indexTemplatePath} dan tidak ada file statis index.html di folder frontend/`);
   }
 
   console.log('Membaca template Views/index.html...');
@@ -98,13 +133,20 @@ function build() {
   const sizeKb = (fs.statSync(distIndexPath).size / 1024).toFixed(2);
   console.log(`Berhasil membuat: ${distIndexPath} (${sizeKb} KB)`);
 
+  // Sinkronkan juga ke root frontend/index.html
+  const rootIndexPath = path.join(__dirname, 'index.html');
+  fs.writeFileSync(rootIndexPath, bundledHtml, 'utf8');
+  console.log(`Disinkronkan: ${rootIndexPath}`);
+
   // Salin config.js dan gasAdapter.js ke folder dist
   const srcConfig = path.join(__dirname, 'config.js');
   const distConfig = path.join(DIST_DIR, 'config.js');
   fs.copyFileSync(srcConfig, distConfig);
   console.log(`Disalin: ${distConfig}`);
 
-  const srcAdapter = path.join(__dirname, 'src', 'api', 'gasAdapter.js');
+  const srcAdapter = fs.existsSync(path.join(__dirname, 'src', 'api', 'gasAdapter.js'))
+    ? path.join(__dirname, 'src', 'api', 'gasAdapter.js')
+    : path.join(__dirname, 'gasAdapter.js');
   const distAdapter = path.join(DIST_DIR, 'gasAdapter.js');
   fs.copyFileSync(srcAdapter, distAdapter);
   console.log(`Disalin: ${distAdapter}`);
