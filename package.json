@@ -1,0 +1,11 @@
+{
+  "name": "dash-katalog-frontend",
+  "version": "1.0.0",
+  "description": "Frontend mandiri untuk Dash Katalog Amanah Safar (Backend Google Apps Script)",
+  "scripts": {
+    "build": "node build.js",
+    "serve": "node -e \"const http=require('http'),fs=require('fs'),path=require('path');const p=fs.existsSync(path.join(__dirname,'index.html'))?__dirname:path.join(__dirname,'dist');http.createServer((req,res)=>{let f=path.join(p,req.url==='/'?'index.html':req.url.split('?')[0]);if(!fs.existsSync(f))f=path.join(p,'index.html');const m={'html':'text/html','js':'application/javascript','css':'text/css','json':'application/json'};res.setHeader('Content-Type',m[path.extname(f).slice(1)]||'text/plain');fs.createReadStream(f).pipe(res);}).listen(3000,()=>console.log('Server berjalan di http://localhost:3000'));\""
+  },
+  "author": "Amanah Safar",
+  "license": "ISC"
+}
